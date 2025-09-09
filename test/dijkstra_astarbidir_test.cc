@@ -32,6 +32,7 @@ constexpr auto const kUseMultithreading = true;
 constexpr auto const kPrintDebugGeojson = false;
 constexpr auto const kMaxMatchDistance = 100;
 constexpr auto const kMaxAllowedPathDifferenceRatio = 0.5;
+constexpr auto const kSearchDir = direction::kBackward;
 
 void load(std::string_view raw_data, std::string_view data_dir) {
   if (!fs::exists(data_dir)) {
@@ -77,7 +78,7 @@ void run(ways const& w,
     auto const node_pinned_matches =
         [&](location const& loc, node_idx_t const n, bool const reverse) {
           auto matches =
-              l.match<car>(car::parameters{}, loc, reverse, direction::kForward,
+              l.match<car>(car::parameters{}, loc, reverse, kSearchDir,
                            kMaxMatchDistance, nullptr);
           std::erase_if(matches, [&](auto const& wc) {
             return wc.left_.node_ != n && wc.right_.node_ != n;
@@ -100,7 +101,7 @@ void run(ways const& w,
     auto const reference_start = std::chrono::steady_clock::now();
     auto const reference =
         route(car::parameters{}, w, l, search_profile::kCar, from_loc, to_loc,
-              from_matches_span, to_matches_span, max_cost, direction::kForward,
+              from_matches_span, to_matches_span, max_cost, kSearchDir,
               nullptr, nullptr, nullptr, routing_algorithm::kDijkstra);
     auto const reference_time =
         std::chrono::steady_clock::now() - reference_start;
@@ -108,7 +109,7 @@ void run(ways const& w,
     auto const experiment_start = std::chrono::steady_clock::now();
     auto const experiment =
         route(car::parameters{}, w, l, search_profile::kCar, from_loc, to_loc,
-              from_matches_span, to_matches_span, max_cost, direction::kForward,
+              from_matches_span, to_matches_span, max_cost, kSearchDir,
               nullptr, nullptr, nullptr, routing_algorithm::kAStarBi);
     auto const experiment_time =
         std::chrono::steady_clock::now() - experiment_start;

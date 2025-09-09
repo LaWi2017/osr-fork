@@ -176,8 +176,9 @@ struct bidirectional {
 
     auto const l = pq.pop();
     auto const curr = l.get_node();
-    auto const curr_cost = get_cost<SearchDir>(curr);
-    if (curr_cost < l.cost() - heuristic(params, w, l.n_, SearchDir, sharing)) {
+    auto const it = costs.find(curr.get_key());
+    auto const curr_cost = it != end(costs) ? it->second.cost(curr) : kInfeasible;
+    if (curr_cost < l.cost() - heuristic(params, w, l.n_, &costs == &cost1_ ? direction::kForward : direction::kBackward, sharing)) {
       return true;
     }
     if constexpr (kDebug) {
@@ -197,9 +198,9 @@ struct bidirectional {
           }
           auto const total = curr_cost + cost;
           auto const heur =
-              total + heuristic(params, w, neighbor.n_, SearchDir, sharing);
+              total + heuristic(params, w, neighbor.n_, &costs == &cost1_ ? direction::kForward : direction::kBackward, sharing);
           if (total >= adjusted_max) {
-            if (SearchDir == direction::kForward) {
+            if (&costs == &cost1_) {
               max_reached_1_ = true;
             } else {
               max_reached_2_ = true;
@@ -247,7 +248,7 @@ struct bidirectional {
 
     auto const handle_end_of_way_meetpoint = [&]() {
       auto const opposite_cost_map =
-          opposite(SearchDir) == direction::kForward ? &cost1_ : &cost2_;
+          &costs == &cost1_ ? &cost2_ : &cost1_;
       auto const opposite_candidate = opposite_cost_map->find(curr.get_key());
       if (opposite_candidate != end(*opposite_cost_map)) {
         auto const other_cost = opposite_candidate->second.cost(curr);
@@ -282,7 +283,8 @@ struct bidirectional {
                 }
                 auto const opposite_curr_cost =
                     opposite_candidate->second.cost(*opposite_curr);
-                auto const pred_cost = get_cost<SearchDir>(*pred);
+                auto const pit = costs.find(pred->get_key());
+                auto const pred_cost = pit != end(costs) ? pit->second.cost(*pred) : kInfeasible;
                 auto const opposite_pred_cost =
                     opposite_it->second.cost(neighbor);
                 auto const evaluate_meetpoint_with_potential_u_turn_cost =
@@ -290,8 +292,8 @@ struct bidirectional {
                         node const meet_1, node const meet_2) {
                       evaluate_meetpoint(
                           cost_1, cost_2,
-                          SearchDir == direction::kForward ? meet_1 : meet_2,
-                          SearchDir == direction::kForward ? meet_2 : meet_1);
+                          &costs == &cost1_ ? meet_1 : meet_2,
+                          &costs == &cost1_ ? meet_2 : meet_1);
                     };
                 if (pred_cost + opposite_pred_cost >
                     curr_cost + opposite_curr_cost) {
